@@ -7,12 +7,45 @@ local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 
--- 🧬 Mutation List
-local mutations = {
-	"Shiny", "Inverted", "Frozen", "Windy", "Golden", "Mega", "Tiny",
-	"Tranquil", "IronSkin", "Radiant", "Rainbow", "Shocked", "Ascended"
+-- 🧬 Weighted Mutation List
+local weightedMutations = {
+    {name = "Shiny", weight = 20},
+    {name = "Inverted", weight = 20},
+    {name = "Windy", weight = 20},
+    {name = "Golden", weight = 20},
+    {name = "Tiny", weight = 20},
+    {name = "Tranquil", weight = 15},
+    {name = "IronSkin", weight = 15},
+
+    -- 🔻 Rare Mutations (low chance)
+    {name = "Frozen", weight = 5},
+    {name = "Mega", weight = 3},
+    {name = "Radiant", weight = 4},
+    {name = "Rainbow", weight = 2},
+    {name = "Shocked", weight = 3},
+    {name = "Ascended", weight = 1}
 }
-local currentMutation = mutations[math.random(#mutations)]
+
+-- 🔁 Weighted random function
+local function getRandomWeightedMutation()
+    local totalWeight = 0
+    for _, item in ipairs(weightedMutations) do
+        totalWeight += item.weight
+    end
+
+    local randomWeight = math.random() * totalWeight
+    local current = 0
+
+    for _, item in ipairs(weightedMutations) do
+        current += item.weight
+        if randomWeight <= current then
+            return item.name
+        end
+    end
+end
+
+-- 🎲 Initial Mutation
+local currentMutation = getRandomWeightedMutation()
 local espVisible = true
 local canReroll = true
 
@@ -53,36 +86,37 @@ title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 
 -- 🔘 Create Button Function
 local function createButton(text, yPos, color)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0.85, 0, 0, 38)
-	btn.Position = UDim2.new(0.075, 0, 0, yPos)
-	btn.BackgroundColor3 = color
-	btn.Text = text
-	btn.Font = Enum.Font.GothamSemibold
-	btn.TextSize = 16
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.AutoButtonColor = false
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.85, 0, 0, 38)
+    btn.Position = UDim2.new(0.075, 0, 0, yPos)
+    btn.BackgroundColor3 = color
+    btn.Text = text
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 16
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.AutoButtonColor = false
 
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
-	local stroke = Instance.new("UIStroke", btn)
-	stroke.Color = Color3.fromRGB(30, 30, 30)
-	stroke.Thickness = 1.5
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+    local stroke = Instance.new("UIStroke", btn)
+    stroke.Color = Color3.fromRGB(30, 30, 30)
+    stroke.Thickness = 1.5
 
-	btn.MouseEnter:Connect(function()
-		TweenService:Create(btn, TweenInfo.new(0.2), {
-			BackgroundColor3 = color:Lerp(Color3.new(1,1,1), 0.1)
-		}):Play()
-	end)
-	btn.MouseLeave:Connect(function()
-		TweenService:Create(btn, TweenInfo.new(0.2), {
-			BackgroundColor3 = color
-		}):Play()
-	end)
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {
+            BackgroundColor3 = color:Lerp(Color3.new(1, 1, 1), 0.1)
+        }):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {
+            BackgroundColor3 = color
+        }):Play()
+    end)
 
-	btn.Parent = frame
-	return btn
+    btn.Parent = frame
+    return btn
 end
 
+-- 🔘 Buttons
 local reroll = createButton("🎲 Reroll Mutation", 60, Color3.fromRGB(85, 170, 255))
 local toggle = createButton("👁️ Toggle ESP", 110, Color3.fromRGB(140, 255, 170))
 
@@ -98,17 +132,17 @@ credit.TextSize = 12
 
 -- 🔎 Find Mutation Machine in Workspace
 local function findMachine()
-	for _, obj in pairs(Workspace:GetDescendants()) do
-		if obj:IsA("Model") and obj.Name:lower():find("mutation") then
-			return obj
-		end
-	end
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj.Name:lower():find("mutation") then
+            return obj
+        end
+    end
 end
 
 local machine = findMachine()
 if not machine or not machine:FindFirstChildWhichIsA("BasePart") then
-	warn("⚠️ Mutation Machine not found.")
-	return
+    warn("⚠️ Mutation Machine not found.")
+    return
 end
 
 local basePart = machine:FindFirstChildWhichIsA("BasePart")
@@ -133,44 +167,43 @@ espLabel.Text = currentMutation
 -- 🌈 Rainbow Animation for ESP
 local hue = 0
 RunService.RenderStepped:Connect(function()
-	if espVisible then
-		hue = (hue + 0.005) % 1
-		espLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
-	end
+    if espVisible then
+        hue = (hue + 0.005) % 1
+        espLabel.TextColor3 = Color3.fromHSV(hue, 1, 1)
+    end
 end)
 
 -- 🔁 Mutation Reroll w/ Cooldown
 local function animateMutationReroll()
-	if not canReroll then return end
-	canReroll = false
-	reroll.Text = "⏳ Cooldown (20s)"
-	reroll.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    if not canReroll then return end
+    canReroll = false
+    reroll.Text = "⏳ Cooldown (20s)"
+    reroll.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 
-	local rollTime = 2
-	local interval = 0.1
-	for i = 1, math.floor(rollTime / interval) do
-		espLabel.Text = mutations[math.random(#mutations)]
-		wait(interval)
-	end
+    local rollTime = 2
+    local interval = 0.1
+    for i = 1, math.floor(rollTime / interval) do
+        espLabel.Text = getRandomWeightedMutation()
+        wait(interval)
+    end
 
-	currentMutation = mutations[math.random(#mutations)]
-	espLabel.Text = currentMutation
+    currentMutation = getRandomWeightedMutation()
+    espLabel.Text = currentMutation
 
-	-- Cooldown delay
-	for i = 20, 1, -1 do
-		reroll.Text = "⏳ Cooldown ("..i.."s)"
-		wait(1)
-	end
+    for i = 20, 1, -1 do
+        reroll.Text = "⏳ Cooldown ("..i.."s)"
+        wait(1)
+    end
 
-	reroll.Text = "🎲 Reroll Mutation"
-	reroll.BackgroundColor3 = Color3.fromRGB(85, 170, 255)
-	canReroll = true
+    reroll.Text = "🎲 Reroll Mutation"
+    reroll.BackgroundColor3 = Color3.fromRGB(85, 170, 255)
+    canReroll = true
 end
 
--- 🔘 Events
+-- 🔘 Button Events
 toggle.MouseButton1Click:Connect(function()
-	espVisible = not espVisible
-	espGui.Enabled = espVisible
+    espVisible = not espVisible
+    espGui.Enabled = espVisible
 end)
 
 reroll.MouseButton1Click:Connect(animateMutationReroll)
